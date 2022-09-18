@@ -1,0 +1,9 @@
+{
+  "connector.class": "com.github.jcustenborder.kafka.connect.twitter.TwitterSourceConnector",
+  "tasks.max": "1",
+  "process.deletes": "false",
+  "filter.keywords":  "nussknacker",
+  "kafka.status.topic": "twitter-status",
+  "kafka.delete.topic":  "twitter-delete",
+  "twitter.debug": "true"
+}
