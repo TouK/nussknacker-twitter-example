@@ -15,33 +15,24 @@
  */
 package com.github.jcustenborder.kafka.connect.twitter;
 
+import com.twitter.clientlib.model.HashtagEntity;
+import com.twitter.clientlib.model.MentionEntity;
+import com.twitter.clientlib.model.Tweet;
+import com.twitter.clientlib.model.TweetGeo;
+import com.twitter.clientlib.model.UrlEntity;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Timestamp;
-import twitter4j.GeoLocation;
-import twitter4j.HashtagEntity;
-import twitter4j.MediaEntity;
-import twitter4j.Place;
-import twitter4j.Status;
-import twitter4j.StatusDeletionNotice;
-import twitter4j.SymbolEntity;
-import twitter4j.URLEntity;
-import twitter4j.User;
-import twitter4j.UserMentionEntity;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 public class StatusConverter {
 
-
   public final static Schema PLACE_SCHEMA;
   public final static Schema GEO_LOCATION_SCHEMA;
-  public static final Schema SCHEMA_STATUS_DELETION_NOTICE;
-  public static final Schema SCHEMA_STATUS_DELETION_NOTICE_KEY;
   public static final Schema STATUS_SCHEMA_KEY;
   public static final Schema STATUS_SCHEMA;
 
@@ -128,7 +119,7 @@ public class StatusConverter {
     STATUS_SCHEMA_KEY = SchemaBuilder.struct()
         .name("com.github.jcustenborder.kafka.connect.twitter.StatusKey")
         .doc("Key for a twitter status.")
-        .field("Id", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("Id", Schema.OPTIONAL_STRING_SCHEMA)
         .build();
   }
 
@@ -150,7 +141,7 @@ public class StatusConverter {
   public static final Schema SCHEMA_HASHTAG_ENTITY = SchemaBuilder.struct()
       .name("com.github.jcustenborder.kafka.connect.twitter.HashtagEntity")
       .doc("")
-      .field("Text", SchemaBuilder.string().optional().doc("Returns the text of the hashtag without #.").build())
+      .field("Tag", SchemaBuilder.string().optional().doc("Returns the text of the hashtag without #.").build())
       .field("Start", SchemaBuilder.int32().optional().doc("Returns the index of the start character of the hashtag.").build())
       .field("End", SchemaBuilder.int32().optional().doc("Returns the index of the end character of the hashtag.").build())
       .build();
@@ -207,7 +198,7 @@ public class StatusConverter {
         .name("com.github.jcustenborder.kafka.connect.twitter.Status")
         .doc("Twitter status message.")
         .field("CreatedAt", Timestamp.builder().doc("Return the created_at").optional().build())
-        .field("Id", SchemaBuilder.int64().doc("Returns the id of the status").optional().build())
+        .field("Id", SchemaBuilder.string().doc("Returns the id of the status").optional().build())
         .field("Text", SchemaBuilder.string().doc("Returns the text of the status").optional().build())
         .field("Source", SchemaBuilder.string().doc("Returns the source").optional().build())
         .field("Truncated", SchemaBuilder.bool().doc("Test if the status is truncated").optional().build())
@@ -237,167 +228,149 @@ public class StatusConverter {
         .build();
   }
 
-  static {
-    SCHEMA_STATUS_DELETION_NOTICE = SchemaBuilder.struct()
-        .name("com.github.jcustenborder.kafka.connect.twitter.StatusDeletionNotice")
-        .doc("Message that is received when a status is deleted from Twitter.")
-        .field("StatusId", Schema.INT64_SCHEMA)
-        .field("UserId", Schema.INT64_SCHEMA)
-        .build();
-  }
+//  static Map<Integer, Struct> convertSizes(Map<Integer, MediaEntity.Size> items) {
+//    Map<Integer, Struct> results = new LinkedHashMap<>();
+//
+//    if (items == null) {
+//      return results;
+//    }
+//
+//    for (Map.Entry<Integer, MediaEntity.Size> kvp : items.entrySet()) {
+//      results.put(kvp.getKey(), convertMediaEntitySize(kvp.getValue()));
+//    }
+//
+//    return results;
+//  }
 
-  static {
-    SCHEMA_STATUS_DELETION_NOTICE_KEY = SchemaBuilder.struct()
-        .name("com.github.jcustenborder.kafka.connect.twitter.StatusDeletionNoticeKey")
-        .doc("Key for a message that is received when a status is deleted from Twitter.")
-        .field("StatusId", Schema.INT64_SCHEMA)
-        .build();
-  }
+//  public static void convert(User user, Struct struct) {
+//    struct
+//        .put("Id", user.getId())
+//        .put("Name", user.getName())
+//        .put("ScreenName", user.getScreenName())
+//        .put("Location", user.getLocation())
+//        .put("Description", user.getDescription())
+//        .put("ContributorsEnabled", user.isContributorsEnabled())
+//        .put("ProfileImageURL", user.getProfileImageURL())
+//        .put("BiggerProfileImageURL", user.getBiggerProfileImageURL())
+//        .put("MiniProfileImageURL", user.getMiniProfileImageURL())
+//        .put("OriginalProfileImageURL", user.getOriginalProfileImageURL())
+//        .put("ProfileImageURLHttps", user.getProfileImageURLHttps())
+//        .put("BiggerProfileImageURLHttps", user.getBiggerProfileImageURLHttps())
+//        .put("MiniProfileImageURLHttps", user.getMiniProfileImageURLHttps())
+//        .put("OriginalProfileImageURLHttps", user.getOriginalProfileImageURLHttps())
+//        .put("DefaultProfileImage", user.isDefaultProfileImage())
+//        .put("URL", user.getURL())
+//        .put("Protected", user.isProtected())
+//        .put("FollowersCount", user.getFollowersCount())
+//        .put("ProfileBackgroundColor", user.getProfileBackgroundColor())
+//        .put("ProfileTextColor", user.getProfileTextColor())
+//        .put("ProfileLinkColor", user.getProfileLinkColor())
+//        .put("ProfileSidebarFillColor", user.getProfileSidebarFillColor())
+//        .put("ProfileSidebarBorderColor", user.getProfileSidebarBorderColor())
+//        .put("ProfileUseBackgroundImage", user.isProfileUseBackgroundImage())
+//        .put("DefaultProfile", user.isDefaultProfile())
+//        .put("ShowAllInlineMedia", user.isShowAllInlineMedia())
+//        .put("FriendsCount", user.getFriendsCount())
+//        .put("CreatedAt", user.getCreatedAt())
+//        .put("FavouritesCount", user.getFavouritesCount())
+//        .put("UtcOffset", user.getUtcOffset())
+//        .put("TimeZone", user.getTimeZone())
+//        .put("ProfileBackgroundImageURL", user.getProfileBackgroundImageURL())
+//        .put("ProfileBackgroundImageUrlHttps", user.getProfileBackgroundImageUrlHttps())
+//        .put("ProfileBannerURL", user.getProfileBannerURL())
+//        .put("ProfileBannerRetinaURL", user.getProfileBannerRetinaURL())
+//        .put("ProfileBannerIPadURL", user.getProfileBannerIPadURL())
+//        .put("ProfileBannerIPadRetinaURL", user.getProfileBannerIPadRetinaURL())
+//        .put("ProfileBannerMobileURL", user.getProfileBannerMobileURL())
+//        .put("ProfileBannerMobileRetinaURL", user.getProfileBannerMobileRetinaURL())
+//        .put("ProfileBackgroundTiled", user.isProfileBackgroundTiled())
+//        .put("Lang", user.getLang())
+//        .put("StatusesCount", user.getStatusesCount())
+//        .put("GeoEnabled", user.isGeoEnabled())
+//        .put("Verified", user.isVerified())
+//        .put("Translator", user.isTranslator())
+//        .put("ListedCount", user.getListedCount())
+//        .put("FollowRequestSent", user.isFollowRequestSent());
+//
+//    List<String> withheldInCountries = new ArrayList<>();
+//    if (null != user.getWithheldInCountries()) {
+//      for (String s : user.getWithheldInCountries()) {
+//        withheldInCountries.add(s);
+//      }
+//    }
+//    struct.put("WithheldInCountries", withheldInCountries);
+//  }
 
-  static Map<Integer, Struct> convertSizes(Map<Integer, MediaEntity.Size> items) {
-    Map<Integer, Struct> results = new LinkedHashMap<>();
+//  public static void convert(Place place, Struct struct) {
+//    if (null == place) {
+//      return;
+//    }
+//    struct.put("Name", place.getName())
+//        .put("StreetAddress", place.getStreetAddress())
+//        .put("CountryCode", place.getCountryCode())
+//        .put("Id", place.getId())
+//        .put("Country", place.getCountry())
+//        .put("PlaceType", place.getPlaceType())
+//        .put("URL", place.getURL())
+//        .put("FullName", place.getFullName());
+//  }
 
-    if (items == null) {
-      return results;
-    }
-
-    for (Map.Entry<Integer, MediaEntity.Size> kvp : items.entrySet()) {
-      results.put(kvp.getKey(), convertMediaEntitySize(kvp.getValue()));
-    }
-
-    return results;
-  }
-
-  public static void convert(User user, Struct struct) {
-    struct
-        .put("Id", user.getId())
-        .put("Name", user.getName())
-        .put("ScreenName", user.getScreenName())
-        .put("Location", user.getLocation())
-        .put("Description", user.getDescription())
-        .put("ContributorsEnabled", user.isContributorsEnabled())
-        .put("ProfileImageURL", user.getProfileImageURL())
-        .put("BiggerProfileImageURL", user.getBiggerProfileImageURL())
-        .put("MiniProfileImageURL", user.getMiniProfileImageURL())
-        .put("OriginalProfileImageURL", user.getOriginalProfileImageURL())
-        .put("ProfileImageURLHttps", user.getProfileImageURLHttps())
-        .put("BiggerProfileImageURLHttps", user.getBiggerProfileImageURLHttps())
-        .put("MiniProfileImageURLHttps", user.getMiniProfileImageURLHttps())
-        .put("OriginalProfileImageURLHttps", user.getOriginalProfileImageURLHttps())
-        .put("DefaultProfileImage", user.isDefaultProfileImage())
-        .put("URL", user.getURL())
-        .put("Protected", user.isProtected())
-        .put("FollowersCount", user.getFollowersCount())
-        .put("ProfileBackgroundColor", user.getProfileBackgroundColor())
-        .put("ProfileTextColor", user.getProfileTextColor())
-        .put("ProfileLinkColor", user.getProfileLinkColor())
-        .put("ProfileSidebarFillColor", user.getProfileSidebarFillColor())
-        .put("ProfileSidebarBorderColor", user.getProfileSidebarBorderColor())
-        .put("ProfileUseBackgroundImage", user.isProfileUseBackgroundImage())
-        .put("DefaultProfile", user.isDefaultProfile())
-        .put("ShowAllInlineMedia", user.isShowAllInlineMedia())
-        .put("FriendsCount", user.getFriendsCount())
-        .put("CreatedAt", user.getCreatedAt())
-        .put("FavouritesCount", user.getFavouritesCount())
-        .put("UtcOffset", user.getUtcOffset())
-        .put("TimeZone", user.getTimeZone())
-        .put("ProfileBackgroundImageURL", user.getProfileBackgroundImageURL())
-        .put("ProfileBackgroundImageUrlHttps", user.getProfileBackgroundImageUrlHttps())
-        .put("ProfileBannerURL", user.getProfileBannerURL())
-        .put("ProfileBannerRetinaURL", user.getProfileBannerRetinaURL())
-        .put("ProfileBannerIPadURL", user.getProfileBannerIPadURL())
-        .put("ProfileBannerIPadRetinaURL", user.getProfileBannerIPadRetinaURL())
-        .put("ProfileBannerMobileURL", user.getProfileBannerMobileURL())
-        .put("ProfileBannerMobileRetinaURL", user.getProfileBannerMobileRetinaURL())
-        .put("ProfileBackgroundTiled", user.isProfileBackgroundTiled())
-        .put("Lang", user.getLang())
-        .put("StatusesCount", user.getStatusesCount())
-        .put("GeoEnabled", user.isGeoEnabled())
-        .put("Verified", user.isVerified())
-        .put("Translator", user.isTranslator())
-        .put("ListedCount", user.getListedCount())
-        .put("FollowRequestSent", user.isFollowRequestSent());
-
-    List<String> withheldInCountries = new ArrayList<>();
-    if (null != user.getWithheldInCountries()) {
-      for (String s : user.getWithheldInCountries()) {
-        withheldInCountries.add(s);
-      }
-    }
-    struct.put("WithheldInCountries", withheldInCountries);
-
-  }
-
-  public static void convert(Place place, Struct struct) {
-    if (null == place) {
-      return;
-    }
-    struct.put("Name", place.getName())
-        .put("StreetAddress", place.getStreetAddress())
-        .put("CountryCode", place.getCountryCode())
-        .put("Id", place.getId())
-        .put("Country", place.getCountry())
-        .put("PlaceType", place.getPlaceType())
-        .put("URL", place.getURL())
-        .put("FullName", place.getFullName());
-  }
-
-  public static void convert(GeoLocation geoLocation, Struct struct) {
+  public static void convert(TweetGeo geoLocation, Struct struct) {
     if (null == geoLocation) {
       return;
     }
-    struct.put("Latitude", geoLocation.getLatitude())
-        .put("Longitude", geoLocation.getLongitude());
+    struct.put("Latitude", Optional.ofNullable(geoLocation.getCoordinates()).map(c -> c.getCoordinates().get(0).floatValue()).orElse(-1f))
+        .put("Longitude", Optional.ofNullable(geoLocation.getCoordinates()).map(c -> c.getCoordinates().get(1).floatValue()).orElse(-1f));
   }
 
 
-  static Struct convertMediaEntityVariant(MediaEntity.Variant variant) {
-    return new Struct(SCHEMA_MEDIA_ENTITY_VARIANT)
-        .put("Url", variant.getUrl())
-        .put("Bitrate", variant.getBitrate())
-        .put("ContentType", variant.getContentType());
-  }
-
-  public static List<Struct> convert(MediaEntity.Variant[] items) {
-    List<Struct> result = new ArrayList<>();
-    if (null == items) {
-      return result;
-    }
-    for (MediaEntity.Variant item : items) {
-      Struct struct = convertMediaEntityVariant(item);
-      result.add(struct);
-    }
-    return result;
-  }
-
-
-  static Struct convertMediaEntitySize(MediaEntity.Size size) {
-    return new Struct(SCHEMA_MEDIA_ENTITY_SIZE)
-        .put("Resize", size.getResize())
-        .put("Width", size.getWidth())
-        .put("Height", size.getHeight());
-  }
-
-  public static List<Struct> convert(MediaEntity.Size[] items) {
-    List<Struct> result = new ArrayList<>();
-    if (null == items) {
-      return result;
-    }
-    for (MediaEntity.Size item : items) {
-      Struct struct = convertMediaEntitySize(item);
-      result.add(struct);
-    }
-    return result;
-  }
+//  static Struct convertMediaEntityVariant(MediaEntity.Variant variant) {
+//    return new Struct(SCHEMA_MEDIA_ENTITY_VARIANT)
+//        .put("Url", variant.getUrl())
+//        .put("Bitrate", variant.getBitrate())
+//        .put("ContentType", variant.getContentType());
+//  }
+//
+//  public static List<Struct> convert(MediaEntity.Variant[] items) {
+//    List<Struct> result = new ArrayList<>();
+//    if (null == items) {
+//      return result;
+//    }
+//    for (MediaEntity.Variant item : items) {
+//      Struct struct = convertMediaEntityVariant(item);
+//      result.add(struct);
+//    }
+//    return result;
+//  }
+//
+//
+//  static Struct convertMediaEntitySize(MediaEntity.Size size) {
+//    return new Struct(SCHEMA_MEDIA_ENTITY_SIZE)
+//        .put("Resize", size.getResize())
+//        .put("Width", size.getWidth())
+//        .put("Height", size.getHeight());
+//  }
+//
+//  public static List<Struct> convert(MediaEntity.Size[] items) {
+//    List<Struct> result = new ArrayList<>();
+//    if (null == items) {
+//      return result;
+//    }
+//    for (MediaEntity.Size item : items) {
+//      Struct struct = convertMediaEntitySize(item);
+//      result.add(struct);
+//    }
+//    return result;
+//  }
 
   static Struct convertHashtagEntity(HashtagEntity hashtagEntity) {
     return new Struct(SCHEMA_HASHTAG_ENTITY)
-        .put("Text", hashtagEntity.getText())
+        .put("Tag", hashtagEntity.getTag())
         .put("Start", hashtagEntity.getStart())
         .put("End", hashtagEntity.getEnd());
   }
 
-  public static List<Struct> convert(HashtagEntity[] items) {
+  public static List<Struct> convertHashtagEntities(List<HashtagEntity> items) {
     List<Struct> result = new ArrayList<>();
     if (null == items) {
       return result;
@@ -409,186 +382,177 @@ public class StatusConverter {
     return result;
   }
 
+//  static Struct convertMediaEntity(MediaEntity mediaEntity) {
+//    return new Struct(SCHEMA_MEDIA_ENTITY)
+//        .put("Id", mediaEntity.getId())
+//        .put("Type", mediaEntity.getType())
+//        .put("MediaURL", mediaEntity.getMediaURL())
+//        .put("Sizes", convertSizes(mediaEntity.getSizes()))
+//        .put("MediaURLHttps", mediaEntity.getMediaURLHttps())
+//        .put("VideoAspectRatioWidth", mediaEntity.getVideoAspectRatioWidth())
+//        .put("VideoAspectRatioHeight", mediaEntity.getVideoAspectRatioHeight())
+//        .put("VideoDurationMillis", mediaEntity.getVideoDurationMillis())
+//        .put("VideoVariants", convert(mediaEntity.getVideoVariants()))
+//        .put("ExtAltText", mediaEntity.getExtAltText())
+//        .put("URL", mediaEntity.getURL())
+//        .put("Text", mediaEntity.getText())
+//        .put("ExpandedURL", mediaEntity.getExpandedURL())
+//        .put("Start", mediaEntity.getStart())
+//        .put("End", mediaEntity.getEnd())
+//        .put("DisplayURL", mediaEntity.getDisplayURL());
+//  }
+//
+//  public static List<Struct> convert(MediaEntity[] items) {
+//    List<Struct> result = new ArrayList<>();
+//    if (null == items) {
+//      return result;
+//    }
+//    for (MediaEntity item : items) {
+//      Struct struct = convertMediaEntity(item);
+//      result.add(struct);
+//    }
+//    return result;
+//  }
+//
+//
+//  static Struct convertSymbolEntity(SymbolEntity symbolEntity) {
+//    return new Struct(SCHEMA_SYMBOL_ENTITY)
+//        .put("Start", symbolEntity.getStart())
+//        .put("End", symbolEntity.getEnd())
+//        .put("Text", symbolEntity.getText());
+//  }
+//
+//  public static List<Struct> convert(SymbolEntity[] items) {
+//    List<Struct> result = new ArrayList<>();
+//    if (null == items) {
+//      return result;
+//    }
+//    for (SymbolEntity item : items) {
+//      Struct struct = convertSymbolEntity(item);
+//      result.add(struct);
+//    }
+//    return result;
+//  }
 
-  static Struct convertMediaEntity(MediaEntity mediaEntity) {
-    return new Struct(SCHEMA_MEDIA_ENTITY)
-        .put("Id", mediaEntity.getId())
-        .put("Type", mediaEntity.getType())
-        .put("MediaURL", mediaEntity.getMediaURL())
-        .put("Sizes", convertSizes(mediaEntity.getSizes()))
-        .put("MediaURLHttps", mediaEntity.getMediaURLHttps())
-        .put("VideoAspectRatioWidth", mediaEntity.getVideoAspectRatioWidth())
-        .put("VideoAspectRatioHeight", mediaEntity.getVideoAspectRatioHeight())
-        .put("VideoDurationMillis", mediaEntity.getVideoDurationMillis())
-        .put("VideoVariants", convert(mediaEntity.getVideoVariants()))
-        .put("ExtAltText", mediaEntity.getExtAltText())
-        .put("URL", mediaEntity.getURL())
-        .put("Text", mediaEntity.getText())
-        .put("ExpandedURL", mediaEntity.getExpandedURL())
-        .put("Start", mediaEntity.getStart())
-        .put("End", mediaEntity.getEnd())
-        .put("DisplayURL", mediaEntity.getDisplayURL());
-  }
 
-  public static List<Struct> convert(MediaEntity[] items) {
-    List<Struct> result = new ArrayList<>();
-    if (null == items) {
-      return result;
-    }
-    for (MediaEntity item : items) {
-      Struct struct = convertMediaEntity(item);
-      result.add(struct);
-    }
-    return result;
-  }
-
-
-  static Struct convertSymbolEntity(SymbolEntity symbolEntity) {
-    return new Struct(SCHEMA_SYMBOL_ENTITY)
-        .put("Start", symbolEntity.getStart())
-        .put("End", symbolEntity.getEnd())
-        .put("Text", symbolEntity.getText());
-  }
-
-  public static List<Struct> convert(SymbolEntity[] items) {
-    List<Struct> result = new ArrayList<>();
-    if (null == items) {
-      return result;
-    }
-    for (SymbolEntity item : items) {
-      Struct struct = convertSymbolEntity(item);
-      result.add(struct);
-    }
-    return result;
-  }
-
-
-  static Struct convertURLEntity(URLEntity uRLEntity) {
+  static Struct convertUrlEntity(UrlEntity uRLEntity) {
     return new Struct(SCHEMA_URL_ENTITY)
-        .put("URL", uRLEntity.getURL())
-        .put("Text", uRLEntity.getText())
-        .put("ExpandedURL", uRLEntity.getExpandedURL())
+        .put("URL", uRLEntity.getUrl())
+//        .put("Text", uRLEntity.getText())
+//        .put("ExpandedURL", uRLEntity.getExpandedURL())
         .put("Start", uRLEntity.getStart())
-        .put("End", uRLEntity.getEnd())
-        .put("DisplayURL", uRLEntity.getDisplayURL());
+        .put("End", uRLEntity.getEnd());
+//        .put("DisplayURL", uRLEntity.getDisplayURL());
   }
 
-  public static List<Struct> convert(URLEntity[] items) {
+  public static List<Struct> convertUrlEntities(List<UrlEntity> items) {
     List<Struct> result = new ArrayList<>();
     if (null == items) {
       return result;
     }
-    for (URLEntity item : items) {
-      Struct struct = convertURLEntity(item);
+    for (UrlEntity item : items) {
+      Struct struct = convertUrlEntity(item);
       result.add(struct);
     }
     return result;
   }
 
 
-  static Struct convertUserMentionEntity(UserMentionEntity userMentionEntity) {
+  static Struct convertMentionEntity(MentionEntity userMentionEntity) {
     return new Struct(SCHEMA_USER_MENTION_ENTITY)
-        .put("Name", userMentionEntity.getName())
+        .put("Name", userMentionEntity.getUsername())
         .put("Id", userMentionEntity.getId())
-        .put("Text", userMentionEntity.getText())
-        .put("ScreenName", userMentionEntity.getScreenName())
+//        .put("Text", userMentionEntity.getText())
+//        .put("ScreenName", userMentionEntity.getScreenName())
         .put("Start", userMentionEntity.getStart())
         .put("End", userMentionEntity.getEnd());
   }
 
-  public static List<Struct> convert(UserMentionEntity[] items) {
+  public static List<Struct> convertMentionEntities(List<MentionEntity> items) {
     List<Struct> result = new ArrayList<>();
     if (null == items) {
       return result;
     }
-    for (UserMentionEntity item : items) {
-      Struct struct = convertUserMentionEntity(item);
+    for (MentionEntity item : items) {
+      Struct struct = convertMentionEntity(item);
       result.add(struct);
     }
     return result;
   }
 
 
-  public static void convertKey(Status status, Struct struct) {
+  public static void convertKey(Tweet status, Struct struct) {
     struct.put("Id", status.getId());
   }
 
-  public static void convert(Status status, Struct struct) {
+  public static void convert(Tweet status, Struct struct) {
     struct
         .put("CreatedAt", status.getCreatedAt())
         .put("Id", status.getId())
         .put("Text", status.getText())
         .put("Source", status.getSource())
-        .put("Truncated", status.isTruncated())
-        .put("InReplyToStatusId", status.getInReplyToStatusId())
+//        .put("Truncated", status.isTruncated())
+//        .put("InReplyToStatusId", status.getInReplyToStatusId())
         .put("InReplyToUserId", status.getInReplyToUserId())
-        .put("InReplyToScreenName", status.getInReplyToScreenName())
-        .put("Favorited", status.isFavorited())
-        .put("Retweeted", status.isRetweeted())
-        .put("FavoriteCount", status.getFavoriteCount())
-        .put("Retweet", status.isRetweet())
-        .put("RetweetCount", status.getRetweetCount())
-        .put("RetweetedByMe", status.isRetweetedByMe())
-        .put("CurrentUserRetweetId", status.getCurrentUserRetweetId())
-        .put("PossiblySensitive", status.isPossiblySensitive())
+//        .put("InReplyToScreenName", status.getInReplyToScreenName())
+//        .put("Favorited", status.isFavorited())
+//        .put("Retweeted", status.isRetweeted())
+//        .put("FavoriteCount", status.getFavoriteCount())
+//        .put("Retweet", status.isRetweet())
+//        .put("RetweetCount", status.getRetweetCount())
+//        .put("RetweetedByMe", status.isRetweetedByMe())
+//        .put("CurrentUserRetweetId", status.getCurrentUserRetweetId())
+//        .put("PossiblySensitive", status.isPossiblySensitive())
         .put("Lang", status.getLang());
 
-    Struct userStruct;
-    if (null != status.getUser()) {
-      userStruct = new Struct(USER_SCHEMA);
-      convert(status.getUser(), userStruct);
-    } else {
-      userStruct = null;
-    }
-    struct.put("User", userStruct);
+//    Struct userStruct;
+//    if (null != status.getUser()) {
+//      userStruct = new Struct(USER_SCHEMA);
+//      convert(status.getUser(), userStruct);
+//    } else {
+//      userStruct = null;
+//    }
+//    struct.put("User", userStruct);
 
-    Struct placeStruct;
-    if (null != status.getPlace()) {
-      placeStruct = new Struct(PLACE_SCHEMA);
-      convert(status.getPlace(), placeStruct);
-    } else {
-      placeStruct = null;
-    }
-    struct.put("Place", placeStruct);
+//    Struct placeStruct;
+//    if (null != status.getPlace()) {
+//      placeStruct = new Struct(PLACE_SCHEMA);
+//      convert(status.getPlace(), placeStruct);
+//    } else {
+//      placeStruct = null;
+//    }
+//    struct.put("Place", placeStruct);
 
     Struct geoLocationStruct;
-    if (null != status.getGeoLocation()) {
+    if (null != status.getGeo()) {
       geoLocationStruct = new Struct(GEO_LOCATION_SCHEMA);
-      convert(status.getGeoLocation(), geoLocationStruct);
+      convert(status.getGeo(), geoLocationStruct);
     } else {
       geoLocationStruct = null;
     }
     struct.put("GeoLocation", geoLocationStruct);
     List<Long> contributers = new ArrayList<>();
 
-    if (null != status.getContributors()) {
-      for (Long l : status.getContributors()) {
-        contributers.add(l);
-      }
-    }
-    struct.put("Contributors", contributers);
-
+//    if (null != status.getContributors()) {
+//      for (Long l : status.getContributors()) {
+//        contributers.add(l);
+//      }
+//    }
+//    struct.put("Contributors", contributers);
+//
     List<String> withheldInCountries = new ArrayList<>();
-    if (null != status.getWithheldInCountries()) {
-      for (String s : status.getWithheldInCountries()) {
-        withheldInCountries.add(s);
-      }
+    if (null != status.getWithheld()) {
+      withheldInCountries.addAll(status.getWithheld().getCountryCodes());
     }
     struct.put("WithheldInCountries", withheldInCountries);
 
-    struct.put("HashtagEntities", convert(status.getHashtagEntities()));
-    struct.put("UserMentionEntities", convert(status.getUserMentionEntities()));
-    struct.put("MediaEntities", convert(status.getMediaEntities()));
-    struct.put("SymbolEntities", convert(status.getSymbolEntities()));
-    struct.put("URLEntities", convert(status.getURLEntities()));
+    if (null != status.getEntities()) {
+      struct.put("HashtagEntities", convertHashtagEntities(status.getEntities().getHashtags()));
+      struct.put("UserMentionEntities", convertMentionEntities(status.getEntities().getMentions()));
+//      struct.put("MediaEntities", convert(status.getMediaEntities()));
+//      struct.put("SymbolEntities", convert(status.getSymbolEntities()));
+      struct.put("URLEntities", convertUrlEntities(status.getEntities().getUrls()));
+    }
   }
 
-  public static void convert(StatusDeletionNotice statusDeletionNotice, Struct struct) {
-    struct.put("StatusId", statusDeletionNotice.getStatusId());
-    struct.put("UserId", statusDeletionNotice.getUserId());
-  }
-
-  public static void convertKey(StatusDeletionNotice statusDeletionNotice, Struct struct) {
-    struct.put("StatusId", statusDeletionNotice.getStatusId());
-  }
 }

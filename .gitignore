@@ -23,3 +23,6 @@
 hs_err_pid*
 
 .idea
+
+# file with secret environment variables
+.env

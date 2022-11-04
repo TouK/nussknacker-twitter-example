@@ -1,16 +1,10 @@
 package com.github.jcustenborder.kafka.connect.twitter;
 
 import com.google.common.base.CaseFormat;
-import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
-import twitter4j.MediaEntity;
-import twitter4j.TweetEntity;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -129,29 +123,29 @@ public class SchemaGeneratorTest {
 
   }
 
-  @Test
-  public void tweetEntities() {
-    Reflections reflections = new Reflections(new ConfigurationBuilder()
-        .setUrls(ClasspathHelper.forJavaClassPath())
-        .forPackages(TweetEntity.class.getPackage().getName())
-    );
-
-    List<Class<?>> allClasses = new ArrayList<>();
-    List<Class<? extends TweetEntity>> classes = list(reflections, TweetEntity.class);
-    allClasses.add(MediaEntity.Variant.class);
-    allClasses.add(MediaEntity.Size.class);
-    allClasses.addAll(classes);
-
-
-    for (Class<?> cls : allClasses) {
-      StringBuilder builder = new StringBuilder();
-      processClass(cls, builder);
-
-      System.out.println(builder);
-    }
-
-
-  }
+//  @Test
+//  public void tweetEntities() {
+//    Reflections reflections = new Reflections(new ConfigurationBuilder()
+//        .setUrls(ClasspathHelper.forJavaClassPath())
+//        .forPackages(TweetEntity.class.getPackage().getName())
+//    );
+//
+//    List<Class<?>> allClasses = new ArrayList<>();
+//    List<Class<? extends TweetEntity>> classes = list(reflections, TweetEntity.class);
+//    allClasses.add(MediaEntity.Variant.class);
+//    allClasses.add(MediaEntity.Size.class);
+//    allClasses.addAll(classes);
+//
+//
+//    for (Class<?> cls : allClasses) {
+//      StringBuilder builder = new StringBuilder();
+//      processClass(cls, builder);
+//
+//      System.out.println(builder);
+//    }
+//
+//
+//  }
 
 
 }

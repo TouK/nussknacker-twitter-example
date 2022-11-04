@@ -18,36 +18,37 @@ package com.github.jcustenborder.kafka.connect.twitter;
 import com.github.jcustenborder.kafka.connect.utils.VersionUtil;
 import com.github.jcustenborder.kafka.connect.utils.data.SourceRecordDeque;
 import com.github.jcustenborder.kafka.connect.utils.data.SourceRecordDequeBuilder;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.twitter.clientlib.ApiException;
 import com.twitter.clientlib.TwitterCredentialsBearer;
 import com.twitter.clientlib.api.TwitterApi;
 import com.twitter.clientlib.model.AddOrDeleteRulesRequest;
 import com.twitter.clientlib.model.AddRulesRequest;
+import com.twitter.clientlib.model.FilteredStreamingTweetResponse;
+import com.twitter.clientlib.model.Get2TweetsSampleStreamResponse;
 import com.twitter.clientlib.model.RuleNoId;
+import com.twitter.clientlib.model.Tweet;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import twitter4j.FilterQuery;
-import twitter4j.StallWarning;
-import twitter4j.Status;
-import twitter4j.StatusDeletionNotice;
-import twitter4j.StatusListener;
-import twitter4j.TwitterStreamFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 
-public class TwitterSourceTask extends SourceTask implements StatusListener {
+public class TwitterSourceTask extends SourceTask {
   static final Logger log = LoggerFactory.getLogger(TwitterSourceTask.class);
   SourceRecordDeque messageQueue;
 
-  InputStream twitterStream;
+  Thread readingThread;
+
+  volatile boolean running;
+
   TwitterSourceConnectorConfig config;
 
   @Override
@@ -63,7 +64,8 @@ public class TwitterSourceTask extends SourceTask implements StatusListener {
         .batchSize(this.config.queueBatchSize)
         .build();
 
-    TwitterApi apiInstance = new TwitterApi(new TwitterCredentialsBearer(this.config.bearerToken));
+    TwitterApi apiInstance = new TwitterApi(new TwitterCredentialsBearer(this.config.bearerToken.value()));
+    InputStream twitterStream;
     try {
       if (this.config.filterRule != null) {
         if (log.isInfoEnabled()) {
@@ -77,16 +79,44 @@ public class TwitterSourceTask extends SourceTask implements StatusListener {
         if (log.isInfoEnabled()) {
           log.info("Starting the twitter search stream.");
         }
-        this.twitterStream = apiInstance.tweets().searchStream().execute();
+        twitterStream = apiInstance.tweets().searchStream().execute();
       } else {
         if (log.isInfoEnabled()) {
           log.info("Starting the twitter sample stream.");
         }
-        this.twitterStream = apiInstance.tweets().sampleStream().execute();
+        twitterStream = apiInstance.tweets().sampleStream().execute();
       }
     } catch (ApiException e) {
       throw new RuntimeException(e);
     }
+    running = true;
+    readingThread = new Thread(() -> {
+      try {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(twitterStream));
+        String line = reader.readLine();
+        while (running && line != null) {
+          Tweet tweet;
+          if (this.config.filterRule != null) {
+            FilteredStreamingTweetResponse tweetResponse = FilteredStreamingTweetResponse.fromJson(line);
+            tweet = tweetResponse.getData();
+          } else {
+            Get2TweetsSampleStreamResponse tweetResponse = Get2TweetsSampleStreamResponse.fromJson(line);
+            tweet = tweetResponse.getData();
+          }
+          onTweet(tweet);
+          line = reader.readLine();
+        }
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      } finally {
+        try {
+          twitterStream.close();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    });
+    readingThread.start();
   }
 
   @Override
@@ -99,15 +129,10 @@ public class TwitterSourceTask extends SourceTask implements StatusListener {
     if (log.isInfoEnabled()) {
       log.info("Shutting down twitter stream.");
     }
-    try {
-      twitterStream.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    running = false;
   }
 
-  @Override
-  public void onStatus(Status status) {
+  public void onTweet(Tweet status) {
     try {
       Struct keyStruct = new Struct(StatusConverter.STATUS_SCHEMA_KEY);
       Struct valueStruct = new Struct(StatusConverter.STATUS_SCHEMA);
@@ -127,50 +152,4 @@ public class TwitterSourceTask extends SourceTask implements StatusListener {
     }
   }
 
-  @Override
-  public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
-    if (!this.config.processDeletes) {
-      return;
-    }
-
-    try {
-      Struct keyStruct = new Struct(StatusConverter.SCHEMA_STATUS_DELETION_NOTICE_KEY);
-
-      StatusConverter.convertKey(statusDeletionNotice, keyStruct);
-
-      Map<String, ?> sourcePartition = ImmutableMap.of();
-      Map<String, ?> sourceOffset = ImmutableMap.of();
-
-      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, this.config.topic, StatusConverter.SCHEMA_STATUS_DELETION_NOTICE_KEY, keyStruct, null, null);
-      this.messageQueue.add(record);
-    } catch (Exception ex) {
-      if (log.isErrorEnabled()) {
-        log.error("Exception thrown", ex);
-      }
-    }
-  }
-
-  @Override
-  public void onTrackLimitationNotice(int i) {
-
-  }
-
-  @Override
-  public void onScrubGeo(long l, long l1) {
-
-  }
-
-  @Override
-  public void onStallWarning(StallWarning stallWarning) {
-    if (log.isWarnEnabled()) {
-      log.warn("code = '{}' percentFull = '{}' - {}", stallWarning.getCode(), stallWarning.getPercentFull(), stallWarning.getMessage());
-    }
-  }
-
-  @Override
-  public void onException(Exception e) {
-    if (log.isErrorEnabled()) {
-      log.error("onException", e);
-    }
-  }
 }

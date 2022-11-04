@@ -20,23 +20,18 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.types.Password;
 
 import java.util.Map;
-import java.util.Set;
-
 
 public class TwitterSourceConnectorConfig extends AbstractConfig {
 
-  public static final String TWITTER_DEBUG_CONF = "twitter.debug";
   public static final String TWITTER_BEARER_TOKEN_CONF = "twitter.bearerToken";
   public static final String FILTER_RULE_CONF = "filter.rule";
-  public static final String KAFKA_STATUS_TOPIC_CONF = "kafka.status.topic";
-  public static final String KAFKA_STATUS_TOPIC_DOC = "Kafka topic to write the statuses to.";
-  public static final String PROCESS_DELETES_CONF = "process.deletes";
-  public static final String PROCESS_DELETES_DOC = "Should this connector process deletes.";
+  public static final String KAFKA_TWEETS_TOPIC_CONF = "kafka.tweets.topic";
+  public static final String KAFKA_TWEETS_TOPIC_DOC = "Kafka topic to write the tweets to.";
   public static final String QUEUE_EMPTY_MS_CONF = "queue.empty.ms";
   public static final String QUEUE_BATCH_SIZE_CONF = "queue.batch.size";
-  private static final String TWITTER_DEBUG_DOC = "Flag to enable debug logging for the twitter api.";
   private static final String TWITTER_BEARER_TOKEN_DOC = "Bearer token";
   private static final String FILTER_RULE_DOC = "Twitter rule used in filtering.";
   public static final String QUEUE_EMPTY_MS_DOC = "The amount of time to wait if there are no records in the queue.";
@@ -44,31 +39,25 @@ public class TwitterSourceConnectorConfig extends AbstractConfig {
 
 
   public final String topic;
-  public final boolean twitterDebug;
-  public final boolean processDeletes;
   public final String filterRule;
   public final int queueEmptyMs;
   public final int queueBatchSize;
-  public final String bearerToken;
+  public final Password bearerToken;
 
   public TwitterSourceConnectorConfig(Map<String, String> parsedConfig) {
     super(conf(), parsedConfig);
-    this.topic = this.getString(KAFKA_STATUS_TOPIC_CONF);
-    this.twitterDebug = this.getBoolean(TWITTER_DEBUG_CONF);
-    this.processDeletes = this.getBoolean(PROCESS_DELETES_CONF);
+    this.topic = getString(KAFKA_TWEETS_TOPIC_CONF);
     this.filterRule = getString(FILTER_RULE_CONF);
     this.queueBatchSize = getInt(QUEUE_BATCH_SIZE_CONF);
     this.queueEmptyMs = getInt(QUEUE_EMPTY_MS_CONF);
-    this.bearerToken = getString(TWITTER_BEARER_TOKEN_CONF);
+    this.bearerToken = getPassword(TWITTER_BEARER_TOKEN_CONF);
   }
 
   public static ConfigDef conf() {
     return new ConfigDef()
-        .define(TWITTER_DEBUG_CONF, Type.BOOLEAN, false, Importance.LOW, TWITTER_DEBUG_DOC)
         .define(TWITTER_BEARER_TOKEN_CONF, Type.PASSWORD, Importance.HIGH, TWITTER_BEARER_TOKEN_DOC)
-        .define(FILTER_RULE_CONF, Type.STRING, Importance.HIGH, FILTER_RULE_DOC)
-        .define(KAFKA_STATUS_TOPIC_CONF, Type.STRING, Importance.HIGH, KAFKA_STATUS_TOPIC_DOC)
-        .define(PROCESS_DELETES_CONF, Type.BOOLEAN, Importance.HIGH, PROCESS_DELETES_DOC)
+        .define(FILTER_RULE_CONF, Type.STRING, null, Importance.HIGH, FILTER_RULE_DOC)
+        .define(KAFKA_TWEETS_TOPIC_CONF, Type.STRING, Importance.HIGH, KAFKA_TWEETS_TOPIC_DOC)
         .define(
             ConfigKeyBuilder.of(QUEUE_EMPTY_MS_CONF, Type.INT)
                 .importance(Importance.LOW)
