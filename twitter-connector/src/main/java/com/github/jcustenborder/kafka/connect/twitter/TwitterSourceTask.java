@@ -45,8 +45,6 @@ public class TwitterSourceTask extends SourceTask {
   static final Logger log = LoggerFactory.getLogger(TwitterSourceTask.class);
   SourceRecordDeque messageQueue;
 
-  Thread readingThread;
-
   volatile boolean running;
 
   TwitterSourceConnectorConfig config;
@@ -67,56 +65,108 @@ public class TwitterSourceTask extends SourceTask {
     TwitterApi apiInstance = new TwitterApi(new TwitterCredentialsBearer(this.config.bearerToken.value()));
     InputStream twitterStream;
     try {
-      if (this.config.filterRule != null) {
-        if (log.isInfoEnabled()) {
-          log.info("Setting up filter rule = {}", this.config.filterRule);
-        }
-        AddRulesRequest add = new AddRulesRequest();
-        RuleNoId rule = new RuleNoId();
-        rule.setValue(this.config.filterRule);
-        add.addAddItem(rule);
-        apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(add)).execute();
-        if (log.isInfoEnabled()) {
-          log.info("Starting the twitter search stream.");
-        }
-        twitterStream = apiInstance.tweets().searchStream().execute();
-      } else {
-        if (log.isInfoEnabled()) {
-          log.info("Starting the twitter sample stream.");
-        }
-        twitterStream = apiInstance.tweets().sampleStream().execute();
-      }
+      twitterStream = initTweetsStreamProcessing(apiInstance);
     } catch (ApiException e) {
       throw new RuntimeException(e);
     }
     running = true;
-    readingThread = new Thread(() -> {
-      try {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(twitterStream));
-        String line = reader.readLine();
-        while (running && line != null) {
-          Tweet tweet;
-          if (this.config.filterRule != null) {
-            FilteredStreamingTweetResponse tweetResponse = FilteredStreamingTweetResponse.fromJson(line);
-            tweet = tweetResponse.getData();
-          } else {
-            Get2TweetsSampleStreamResponse tweetResponse = Get2TweetsSampleStreamResponse.fromJson(line);
-            tweet = tweetResponse.getData();
-          }
-          onTweet(tweet);
-          line = reader.readLine();
-        }
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      } finally {
+    Thread readingThread = new TweetsStreamConsumingThread(apiInstance, twitterStream);
+    readingThread.start();
+  }
+
+  private class TweetsStreamConsumingThread extends Thread {
+
+    private final TwitterApi apiInstance;
+
+    private InputStream twitterStream;
+
+    public TweetsStreamConsumingThread(TwitterApi apiInstance, InputStream initialTwitterStream) {
+      this.apiInstance = apiInstance;
+      this.twitterStream = initialTwitterStream;
+    }
+
+    @Override
+    public void run() {
+      while (running) {
         try {
-          twitterStream.close();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+          BufferedReader reader = new BufferedReader(new InputStreamReader(twitterStream));
+          String line = reader.readLine();
+          while (running && line != null) {
+            if (config.filterRule != null) {
+              consumeFilteredStreamingTweetResponse(line);
+            } else {
+              consumeGet2TweetsSampleStreamResponse(line);
+            }
+            line = reader.readLine();
+          }
+          closeTwitterStreamGracefully();
+        } catch (Exception ex) {
+          log.error("Exception during tweets stream processing. Restarting stream processing...", ex);
+          try {
+            closeTwitterStreamGracefully();
+            Thread.sleep(1000);
+            twitterStream = initTweetsStreamProcessing(apiInstance);
+          } catch (Exception exx) {
+            log.error("Exception during restart of stream processing. Stopping job...");
+            throw new RuntimeException(exx);
+          }
         }
       }
-    });
-    readingThread.start();
+    }
+
+    private void closeTwitterStreamGracefully() {
+      try {
+        twitterStream.close();
+      } catch (IOException ex) {
+        log.error("Exception during tweets stream closing", ex);
+      }
+    }
+  }
+
+  private InputStream initTweetsStreamProcessing(TwitterApi apiInstance) throws ApiException {
+    InputStream twitterStream;
+    if (this.config.filterRule != null) {
+      if (log.isInfoEnabled()) {
+        log.info("Setting up filter rule = {}", this.config.filterRule);
+      }
+      AddRulesRequest add = new AddRulesRequest();
+      RuleNoId rule = new RuleNoId();
+      rule.setValue(this.config.filterRule);
+      add.addAddItem(rule);
+      apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(add)).execute();
+      if (log.isInfoEnabled()) {
+        log.info("Starting tweets search stream.");
+      }
+      twitterStream = apiInstance.tweets().searchStream().execute();
+    } else {
+      if (log.isInfoEnabled()) {
+        log.info("Starting tweets sample stream.");
+      }
+      twitterStream = apiInstance.tweets().sampleStream().execute();
+    }
+    return twitterStream;
+  }
+
+  private void consumeFilteredStreamingTweetResponse(String line) {
+    try {
+      FilteredStreamingTweetResponse tweetResponse = FilteredStreamingTweetResponse.fromJson(line);
+      if (tweetResponse != null) {
+        onTweet(tweetResponse.getData());
+      }
+    } catch (Exception ex) {
+      log.error("Exception during TweetsSampleStreamResponse processing - will be skipped", ex);
+    }
+  }
+
+  private void consumeGet2TweetsSampleStreamResponse(String line) {
+    try {
+      Get2TweetsSampleStreamResponse tweetResponse = Get2TweetsSampleStreamResponse.fromJson(line);
+      if (tweetResponse != null) {
+        onTweet(tweetResponse.getData());
+      }
+    } catch (Exception ex) {
+      log.error("Exception during Get2TweetsSampleStreamResponse processing - will be skipped", ex);
+    }
   }
 
   @Override

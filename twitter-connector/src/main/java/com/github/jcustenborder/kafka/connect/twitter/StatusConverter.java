@@ -200,30 +200,30 @@ public class StatusConverter {
         .field("CreatedAt", Timestamp.builder().doc("Return the created_at").optional().build())
         .field("Id", SchemaBuilder.string().doc("Returns the id of the status").optional().build())
         .field("Text", SchemaBuilder.string().doc("Returns the text of the status").optional().build())
-        .field("Source", SchemaBuilder.string().doc("Returns the source").optional().build())
-        .field("Truncated", SchemaBuilder.bool().doc("Test if the status is truncated").optional().build())
-        .field("InReplyToStatusId", SchemaBuilder.int64().doc("Returns the in_reply_tostatus_id").optional().build())
-        .field("InReplyToUserId", SchemaBuilder.int64().doc("Returns the in_reply_user_id").optional().build())
-        .field("InReplyToScreenName", SchemaBuilder.string().doc("Returns the in_reply_to_screen_name").optional().build())
-        .field("GeoLocation", GEO_LOCATION_SCHEMA)
-        .field("Place", PLACE_SCHEMA)
-        .field("Favorited", SchemaBuilder.bool().doc("Test if the status is favorited").optional().build())
-        .field("Retweeted", SchemaBuilder.bool().doc("Test if the status is retweeted").optional().build())
-        .field("FavoriteCount", SchemaBuilder.int32().doc("Indicates approximately how many times this Tweet has been \"favorited\" by Twitter users.").optional().build())
-        .field("User", USER_SCHEMA)
-        .field("Retweet", SchemaBuilder.bool().optional().build())
-        .field("Contributors", SchemaBuilder.array(Schema.INT64_SCHEMA).doc("Returns an array of contributors, or null if no contributor is associated with this status.").build())
-        .field("RetweetCount", SchemaBuilder.int32().doc("Returns the number of times this tweet has been retweeted, or -1 when the tweet was created before this feature was enabled.").optional().build())
-        .field("RetweetedByMe", SchemaBuilder.bool().optional().build())
-        .field("CurrentUserRetweetId", SchemaBuilder.int64().doc("Returns the authenticating user's retweet's id of this tweet, or -1L when the tweet was created before this feature was enabled.").optional().build())
-        .field("PossiblySensitive", SchemaBuilder.bool().optional().build())
-        .field("Lang", SchemaBuilder.string().doc("Returns the lang of the status text if available.").optional().build())
-        .field("WithheldInCountries", SchemaBuilder.array(Schema.STRING_SCHEMA).doc("Returns the list of country codes where the tweet is withheld").build())
-        .field("HashtagEntities", SchemaBuilder.array(SCHEMA_HASHTAG_ENTITY).doc("Returns an array if hashtag mentioned in the tweet.").optional().build())
-        .field("UserMentionEntities", SchemaBuilder.array(SCHEMA_USER_MENTION_ENTITY).doc("Returns an array of user mentions in the tweet.").optional().build())
-        .field("MediaEntities", SchemaBuilder.array(SCHEMA_MEDIA_ENTITY).doc("Returns an array of MediaEntities if medias are available in the tweet.").optional().build())
-        .field("SymbolEntities", SchemaBuilder.array(SCHEMA_SYMBOL_ENTITY).doc("Returns an array of SymbolEntities if medias are available in the tweet.").optional().build())
-        .field("URLEntities", SchemaBuilder.array(SCHEMA_URL_ENTITY).doc("Returns an array if URLEntity mentioned in the tweet.").optional().build())
+//        .field("Source", SchemaBuilder.string().doc("Returns the source").optional().build())
+//        .field("Truncated", SchemaBuilder.bool().doc("Test if the status is truncated").optional().build())
+//        .field("InReplyToStatusId", SchemaBuilder.int64().doc("Returns the in_reply_tostatus_id").optional().build())
+//        .field("InReplyToUserId", SchemaBuilder.int64().doc("Returns the in_reply_user_id").optional().build())
+//        .field("InReplyToScreenName", SchemaBuilder.string().doc("Returns the in_reply_to_screen_name").optional().build())
+//        .field("GeoLocation", GEO_LOCATION_SCHEMA)
+//        .field("Place", PLACE_SCHEMA)
+//        .field("Favorited", SchemaBuilder.bool().doc("Test if the status is favorited").optional().build())
+//        .field("Retweeted", SchemaBuilder.bool().doc("Test if the status is retweeted").optional().build())
+//        .field("FavoriteCount", SchemaBuilder.int32().doc("Indicates approximately how many times this Tweet has been \"favorited\" by Twitter users.").optional().build())
+//        .field("User", USER_SCHEMA)
+//        .field("Retweet", SchemaBuilder.bool().optional().build())
+//        .field("Contributors", SchemaBuilder.array(Schema.INT64_SCHEMA).doc("Returns an array of contributors, or null if no contributor is associated with this status.").build())
+//        .field("RetweetCount", SchemaBuilder.int32().doc("Returns the number of times this tweet has been retweeted, or -1 when the tweet was created before this feature was enabled.").optional().build())
+//        .field("RetweetedByMe", SchemaBuilder.bool().optional().build())
+//        .field("CurrentUserRetweetId", SchemaBuilder.int64().doc("Returns the authenticating user's retweet's id of this tweet, or -1L when the tweet was created before this feature was enabled.").optional().build())
+//        .field("PossiblySensitive", SchemaBuilder.bool().optional().build())
+//        .field("Lang", SchemaBuilder.string().doc("Returns the lang of the status text if available.").optional().build())
+//        .field("WithheldInCountries", SchemaBuilder.array(Schema.STRING_SCHEMA).doc("Returns the list of country codes where the tweet is withheld").build())
+//        .field("HashtagEntities", SchemaBuilder.array(SCHEMA_HASHTAG_ENTITY).doc("Returns an array if hashtag mentioned in the tweet.").optional().build())
+//        .field("UserMentionEntities", SchemaBuilder.array(SCHEMA_USER_MENTION_ENTITY).doc("Returns an array of user mentions in the tweet.").optional().build())
+//        .field("MediaEntities", SchemaBuilder.array(SCHEMA_MEDIA_ENTITY).doc("Returns an array of MediaEntities if medias are available in the tweet.").optional().build())
+//        .field("SymbolEntities", SchemaBuilder.array(SCHEMA_SYMBOL_ENTITY).doc("Returns an array of SymbolEntities if medias are available in the tweet.").optional().build())
+//        .field("URLEntities", SchemaBuilder.array(SCHEMA_URL_ENTITY).doc("Returns an array if URLEntity mentioned in the tweet.").optional().build())
 
         .build();
   }
@@ -489,11 +489,11 @@ public class StatusConverter {
     struct
         .put("CreatedAt", status.getCreatedAt())
         .put("Id", status.getId())
-        .put("Text", status.getText())
-        .put("Source", status.getSource())
+        .put("Text", status.getText());
+//        .put("Source", status.getSource())
 //        .put("Truncated", status.isTruncated())
 //        .put("InReplyToStatusId", status.getInReplyToStatusId())
-        .put("InReplyToUserId", status.getInReplyToUserId())
+//        .put("InReplyToUserId", status.getInReplyToUserId())
 //        .put("InReplyToScreenName", status.getInReplyToScreenName())
 //        .put("Favorited", status.isFavorited())
 //        .put("Retweeted", status.isRetweeted())
@@ -503,7 +503,7 @@ public class StatusConverter {
 //        .put("RetweetedByMe", status.isRetweetedByMe())
 //        .put("CurrentUserRetweetId", status.getCurrentUserRetweetId())
 //        .put("PossiblySensitive", status.isPossiblySensitive())
-        .put("Lang", status.getLang());
+//        .put("Lang", status.getLang());
 
 //    Struct userStruct;
 //    if (null != status.getUser()) {
@@ -523,15 +523,15 @@ public class StatusConverter {
 //    }
 //    struct.put("Place", placeStruct);
 
-    Struct geoLocationStruct;
-    if (null != status.getGeo()) {
-      geoLocationStruct = new Struct(GEO_LOCATION_SCHEMA);
-      convert(status.getGeo(), geoLocationStruct);
-    } else {
-      geoLocationStruct = null;
-    }
-    struct.put("GeoLocation", geoLocationStruct);
-    List<Long> contributers = new ArrayList<>();
+//    Struct geoLocationStruct;
+//    if (null != status.getGeo()) {
+//      geoLocationStruct = new Struct(GEO_LOCATION_SCHEMA);
+//      convert(status.getGeo(), geoLocationStruct);
+//    } else {
+//      geoLocationStruct = null;
+//    }
+//    struct.put("GeoLocation", geoLocationStruct);
+//    List<Long> contributers = new ArrayList<>();
 
 //    if (null != status.getContributors()) {
 //      for (Long l : status.getContributors()) {
@@ -540,19 +540,19 @@ public class StatusConverter {
 //    }
 //    struct.put("Contributors", contributers);
 //
-    List<String> withheldInCountries = new ArrayList<>();
-    if (null != status.getWithheld()) {
-      withheldInCountries.addAll(status.getWithheld().getCountryCodes());
-    }
-    struct.put("WithheldInCountries", withheldInCountries);
-
-    if (null != status.getEntities()) {
-      struct.put("HashtagEntities", convertHashtagEntities(status.getEntities().getHashtags()));
-      struct.put("UserMentionEntities", convertMentionEntities(status.getEntities().getMentions()));
+//    List<String> withheldInCountries = new ArrayList<>();
+//    if (null != status.getWithheld()) {
+//      withheldInCountries.addAll(status.getWithheld().getCountryCodes());
+//    }
+//    struct.put("WithheldInCountries", withheldInCountries);
+//
+//    if (null != status.getEntities()) {
+//      struct.put("HashtagEntities", convertHashtagEntities(status.getEntities().getHashtags()));
+//      struct.put("UserMentionEntities", convertMentionEntities(status.getEntities().getMentions()));
 //      struct.put("MediaEntities", convert(status.getMediaEntities()));
 //      struct.put("SymbolEntities", convert(status.getSymbolEntities()));
-      struct.put("URLEntities", convertUrlEntities(status.getEntities().getUrls()));
-    }
+//      struct.put("URLEntities", convertUrlEntities(status.getEntities().getUrls()));
+//    }
   }
 
 }

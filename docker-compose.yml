@@ -3,7 +3,7 @@ version: '3.8'
 services:
   zookeeper:
     container_name: zookeeper
-    image: zookeeper:${ZOOKEEPER_VERSION-3.5.8}
+    image: zookeeper:3.5.8
     environment:
       ZOO_MY_ID: 1
       JVMFLAGS: "-Xms64m -Xmx128m"
@@ -20,7 +20,7 @@ services:
     container_name: kafka
     # It is used for kafka logs.dir - can't be randomly changed
     hostname: kafka
-    image: ${KAFKA_REPOSITORY-wurstmeister/kafka}:${KAFKA_VERSION-2.13-2.8.1}
+    image: wurstmeister/kafka:2.13-2.8.1
     ports:
       - "3032:3032"
     environment:
@@ -46,12 +46,12 @@ services:
 
   akhq:
     container_name: akhq
-    image: tchiotludo/akhq:${AKHQ_VERSION-0.22.0}
+    image: tchiotludo/akhq:0.22.0
     environment:
       AKHQ_CONFIGURATION: |
         akhq:
           security:
-            default-group: ${AKHQ_SECURITY_GROUP-admin}
+            default-group: admin
           connections:
             kafka:
               properties:
@@ -70,7 +70,7 @@ services:
 
   schemaregistry:
     container_name: schemaregistry
-    image: confluentinc/cp-schema-registry:${SCHEMA_REGISTRY_VERSION-7.2.1}
+    image: confluentinc/cp-schema-registry:7.2.1
     environment:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_HOST_NAME: schemaregistry
@@ -92,7 +92,7 @@ services:
     ports:
       - 8083:8083
     volumes:
-      - ${BASE_PATH}/twitter-connector/target/kafka-connect-target/usr/share/kafka-connect/kafka-connect-twitter:/data/connect-jars/kafka-connect-twitter
+      - ./twitter-connector/target/kafka-connect-target/usr/share/kafka-connect/kafka-connect-twitter:/data/connect-jars/kafka-connect-twitter
     environment:
       CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
 
@@ -148,6 +148,61 @@ services:
       interval: 10s
       retries: 5
 
+  designer:
+    container_name: designer
+    image: touk/nussknacker:1.6.0
+    ports:
+      - "3081:8080"
+    environment:
+      CONFIG_FILE: /opt/nussknacker/conf/application.conf,/opt/nussknacker/conf/nussknacker.conf
+      JDK_JAVA_OPTIONS: -Xmx256M
+      INFLUXDB_URL: http://influxdb:8086
+      KAFKA_ADDRESS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schemaregistry:8081
+      DEFAULT_SCENARIO_TYPE: streaming-lite-embedded
+    volumes:
+      - storage_designer:/opt/nussknacker/storage
+      - ./nussknacker/nussknacker.conf:/opt/nussknacker/conf/nussknacker.conf
+
+  influxdb:
+    container_name: influxdb
+    hostname: influxdb
+    image: influxdb:1.8.10
+    ports:
+      - "3086:8086"
+    environment:
+      INFLUXDB_DB: esp
+      INFLUXDB_DATA_QUERY_LOG_ENABLED: "false"
+      INFLUXDB_HTTP_LOG_ENABLED: "false"
+    volumes:
+      - storage_influxdb:/var/lib/influxdb
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:8.4.2
+    volumes:
+      - ./grafana:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:/grafana
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    depends_on:
+      - influxdb
+
+  nginx:
+    container_name: nussknacker_nginx
+    image: nginx:1.17.6
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    #we restart over 30s to let additional services (grafana etc.) come up
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 6
+
 volumes:
   storage_zookeeper_datalog:
     name: storage_zookeeper_datalog
@@ -155,3 +210,7 @@ volumes:
     name: storage_zookeeper_data
   storage_kafka_data:
     name: storage_kafka_data
+  storage_influxdb:
+    name: storage_influxdb
+  storage_designer:
+    name: storage_designer
