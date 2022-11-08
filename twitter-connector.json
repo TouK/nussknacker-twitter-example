@@ -2,6 +2,5 @@
   "connector.class": "com.github.jcustenborder.kafka.connect.twitter.TwitterSourceConnector",
   "tasks.max": "1",
   "kafka.tweets.topic": "tweets",
-  "filter.rule": "#bitcoin",
   "twitter.bearerToken": "$TWITTER_BEARER_TOKEN"
 }

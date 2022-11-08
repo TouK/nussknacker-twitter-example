@@ -1,0 +1,174 @@
+{
+  "metaData" : {
+    "id" : "TwitterSentimentExample",
+    "typeSpecificData" : {
+      "parallelism" : null,
+      "type" : "LiteStreamMetaData"
+    },
+    "additionalFields" : null,
+    "subprocessVersions" : {
+      
+    }
+  },
+  "nodes" : [
+    {
+      "id" : "kafka",
+      "ref" : {
+        "typ" : "kafka",
+        "parameters" : [
+          {
+            "name" : "Topic",
+            "expression" : {
+              "language" : "spel",
+              "expression" : "'tweets'"
+            }
+          },
+          {
+            "name" : "Schema version",
+            "expression" : {
+              "language" : "spel",
+              "expression" : "'latest'"
+            }
+          }
+        ]
+      },
+      "additionalFields" : {
+        "description" : null,
+        "layoutData" : {
+          "x" : 360,
+          "y" : 0
+        }
+      },
+      "type" : "Source"
+    },
+    {
+      "id" : "positive words list",
+      "varName" : "postiveWords",
+      "value" : {
+        "language" : "spel",
+        "expression" : "{'good', 'well', 'super', 'happy', 'fantastic', 'beautiful', 'awesome', 'amazing', 'brilliant', 'gorgeous', 'impressive', 'legendary', 'lovely', 'marvelous', 'remarkable', 'robust', 'wonderful', 'wow'}"
+      },
+      "additionalFields" : {
+        "description" : null,
+        "layoutData" : {
+          "x" : 360,
+          "y" : 180
+        }
+      },
+      "type" : "Variable"
+    },
+    {
+      "id" : " negative words list",
+      "varName" : "negativeWords",
+      "value" : {
+        "language" : "spel",
+        "expression" : "{'angry', 'bad', 'boring', 'clumsy', 'disgusting', 'fail', 'harmful', 'hate', 'horrible', 'nasty', 'poor', 'sad', 'stupid', 'terrible', 'terrifying', 'ugly', 'upset', 'worthless'}"
+      },
+      "additionalFields" : {
+        "description" : null,
+        "layoutData" : {
+          "x" : 360,
+          "y" : 360
+        }
+      },
+      "type" : "Variable"
+    },
+    {
+      "defaultNext" : [
+      ],
+      "nexts" : [
+        {
+          "expression" : {
+            "language" : "spel",
+            "expression" : "!#postiveWords.?[#input.Text.toLowerCase.contains(#this)].isEmpty"
+          },
+          "nodes" : [
+            {
+              "id" : "positive",
+              "ref" : {
+                "typ" : "dead-end",
+                "parameters" : [
+                ]
+              },
+              "endResult" : null,
+              "isDisabled" : null,
+              "additionalFields" : {
+                "description" : null,
+                "layoutData" : {
+                  "x" : 0,
+                  "y" : 720
+                }
+              },
+              "type" : "Sink"
+            }
+          ]
+        },
+        {
+          "expression" : {
+            "language" : "spel",
+            "expression" : "!#negativeWords.?[#input.Text.toLowerCase.contains(#this)].isEmpty"
+          },
+          "nodes" : [
+            {
+              "id" : "negative",
+              "ref" : {
+                "typ" : "dead-end",
+                "parameters" : [
+                ]
+              },
+              "endResult" : null,
+              "isDisabled" : null,
+              "additionalFields" : {
+                "description" : null,
+                "layoutData" : {
+                  "x" : 361,
+                  "y" : 835
+                }
+              },
+              "type" : "Sink"
+            }
+          ]
+        },
+        {
+          "expression" : {
+            "language" : "spel",
+            "expression" : "true"
+          },
+          "nodes" : [
+            {
+              "id" : "neutral",
+              "ref" : {
+                "typ" : "dead-end",
+                "parameters" : [
+                ]
+              },
+              "endResult" : null,
+              "isDisabled" : null,
+              "additionalFields" : {
+                "description" : null,
+                "layoutData" : {
+                  "x" : 797,
+                  "y" : 719
+                }
+              },
+              "type" : "Sink"
+            }
+          ]
+        }
+      ],
+      "id" : "choice",
+      "expression" : null,
+      "exprVal" : null,
+      "additionalFields" : {
+        "description" : null,
+        "layoutData" : {
+          "x" : 360,
+          "y" : 540
+        }
+      },
+      "type" : "Switch"
+    }
+  ],
+  "additionalBranches" : [
+  ]
+}
