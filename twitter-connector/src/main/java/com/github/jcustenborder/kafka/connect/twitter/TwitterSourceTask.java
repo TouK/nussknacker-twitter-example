@@ -23,9 +23,13 @@ import com.twitter.clientlib.ApiException;
 import com.twitter.clientlib.TwitterCredentialsBearer;
 import com.twitter.clientlib.api.TwitterApi;
 import com.twitter.clientlib.model.AddOrDeleteRulesRequest;
+import com.twitter.clientlib.model.AddOrDeleteRulesResponse;
 import com.twitter.clientlib.model.AddRulesRequest;
+import com.twitter.clientlib.model.DeleteRulesRequest;
+import com.twitter.clientlib.model.DeleteRulesRequestDelete;
 import com.twitter.clientlib.model.FilteredStreamingTweetResponse;
 import com.twitter.clientlib.model.Get2TweetsSampleStreamResponse;
+import com.twitter.clientlib.model.Rule;
 import com.twitter.clientlib.model.RuleNoId;
 import com.twitter.clientlib.model.Tweet;
 import org.apache.kafka.connect.data.Struct;
@@ -40,9 +44,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class TwitterSourceTask extends SourceTask {
   static final Logger log = LoggerFactory.getLogger(TwitterSourceTask.class);
+  private static final int RETRIES = 10;
   SourceRecordDeque messageQueue;
 
   volatile boolean running;
@@ -70,17 +76,17 @@ public class TwitterSourceTask extends SourceTask {
       throw new RuntimeException(e);
     }
     running = true;
-    Thread readingThread = new TweetsStreamConsumingThread(apiInstance, twitterStream);
+    Thread readingThread = new TweetsStreamProcessingThread(apiInstance, twitterStream);
     readingThread.start();
   }
 
-  private class TweetsStreamConsumingThread extends Thread {
+  private class TweetsStreamProcessingThread extends Thread {
 
     private final TwitterApi apiInstance;
 
     private InputStream twitterStream;
 
-    public TweetsStreamConsumingThread(TwitterApi apiInstance, InputStream initialTwitterStream) {
+    public TweetsStreamProcessingThread(TwitterApi apiInstance, InputStream initialTwitterStream) {
       this.apiInstance = apiInstance;
       this.twitterStream = initialTwitterStream;
     }
@@ -93,9 +99,9 @@ public class TwitterSourceTask extends SourceTask {
           String line = reader.readLine();
           while (running && line != null) {
             if (config.filterRule != null) {
-              consumeFilteredStreamingTweetResponse(line);
+              processFilteredStreamingTweetResponse(line);
             } else {
-              consumeGet2TweetsSampleStreamResponse(line);
+              processGet2TweetsSampleStreamResponse(line);
             }
             line = reader.readLine();
           }
@@ -126,28 +132,40 @@ public class TwitterSourceTask extends SourceTask {
   private InputStream initTweetsStreamProcessing(TwitterApi apiInstance) throws ApiException {
     InputStream twitterStream;
     if (this.config.filterRule != null) {
-      if (log.isInfoEnabled()) {
-        log.info("Setting up filter rule = {}", this.config.filterRule);
-      }
-      AddRulesRequest add = new AddRulesRequest();
-      RuleNoId rule = new RuleNoId();
-      rule.setValue(this.config.filterRule);
-      add.addAddItem(rule);
-      apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(add)).execute();
-      if (log.isInfoEnabled()) {
-        log.info("Starting tweets search stream.");
-      }
-      twitterStream = apiInstance.tweets().searchStream().execute();
+      setFilterRule(apiInstance);
+      log.info("Starting tweets search stream.");
+      twitterStream = apiInstance.tweets().searchStream().execute(RETRIES);
     } else {
-      if (log.isInfoEnabled()) {
-        log.info("Starting tweets sample stream.");
-      }
-      twitterStream = apiInstance.tweets().sampleStream().execute();
+      log.info("Starting tweets sample stream.");
+      twitterStream = apiInstance.tweets().sampleStream().execute(RETRIES);
     }
     return twitterStream;
   }
 
-  private void consumeFilteredStreamingTweetResponse(String line) {
+  private void setFilterRule(TwitterApi apiInstance) throws ApiException {
+    log.info("Setting up filter rule = {}", this.config.filterRule);
+    List<Rule> currentRules = apiInstance.tweets().getRules().execute(RETRIES).getData();
+    if (currentRules != null && !currentRules.isEmpty()) {
+      List<String> currentNotMatchingRulesIds = currentRules.stream()
+              .filter(rule -> !rule.getValue().equals(this.config.filterRule))
+              .map(Rule::getId).collect(Collectors.toList());
+      if (!currentNotMatchingRulesIds.isEmpty()) {
+        DeleteRulesRequest delete = new DeleteRulesRequest().delete(new DeleteRulesRequestDelete().ids(currentNotMatchingRulesIds));
+        AddOrDeleteRulesResponse deleteRulesResult = apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(delete)).execute(RETRIES);
+        log.debug("Delete rules result: " + deleteRulesResult);
+      }
+    }
+    if (currentRules == null || currentRules.stream().noneMatch(rule -> rule.getValue().equals(this.config.filterRule))) {
+      RuleNoId rule = new RuleNoId().value(this.config.filterRule);
+      AddRulesRequest add = new AddRulesRequest().addAddItem(rule);
+      AddOrDeleteRulesResponse addRulesResult = apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(add)).execute(RETRIES);
+      log.debug("Add rules result: " + addRulesResult);
+    } else {
+      log.debug("Filter rule already configured");
+    }
+  }
+
+  private void processFilteredStreamingTweetResponse(String line) {
     try {
       FilteredStreamingTweetResponse tweetResponse = FilteredStreamingTweetResponse.fromJson(line);
       if (tweetResponse != null) {
@@ -158,7 +176,7 @@ public class TwitterSourceTask extends SourceTask {
     }
   }
 
-  private void consumeGet2TweetsSampleStreamResponse(String line) {
+  private void processGet2TweetsSampleStreamResponse(String line) {
     try {
       Get2TweetsSampleStreamResponse tweetResponse = Get2TweetsSampleStreamResponse.fromJson(line);
       if (tweetResponse != null) {
