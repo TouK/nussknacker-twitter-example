@@ -202,16 +202,16 @@ public class TwitterSourceTask extends SourceTask {
 
   public void onTweet(Tweet status) {
     try {
-      Struct keyStruct = new Struct(StatusConverter.STATUS_SCHEMA_KEY);
-      Struct valueStruct = new Struct(StatusConverter.STATUS_SCHEMA);
+      Struct keyStruct = new Struct(TweetConverter.STATUS_SCHEMA_KEY);
+      Struct valueStruct = new Struct(TweetConverter.STATUS_SCHEMA);
 
-      StatusConverter.convertKey(status, keyStruct);
-      StatusConverter.convert(status, valueStruct);
+      TweetConverter.convertKey(status, keyStruct);
+      TweetConverter.convert(status, valueStruct);
 
       Map<String, ?> sourcePartition = ImmutableMap.of();
       Map<String, ?> sourceOffset = ImmutableMap.of();
 
-      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, this.config.topic, StatusConverter.STATUS_SCHEMA_KEY, keyStruct, StatusConverter.STATUS_SCHEMA, valueStruct);
+      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, this.config.topic, TweetConverter.STATUS_SCHEMA_KEY, keyStruct, TweetConverter.STATUS_SCHEMA, valueStruct);
       this.messageQueue.add(record);
     } catch (Exception ex) {
       if (log.isErrorEnabled()) {

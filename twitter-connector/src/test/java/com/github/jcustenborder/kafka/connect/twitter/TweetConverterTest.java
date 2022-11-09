@@ -15,19 +15,11 @@
  */
 package com.github.jcustenborder.kafka.connect.twitter;
 
-import org.apache.kafka.connect.data.Struct;
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-public class StatusConverterTest {
+public class TweetConverterTest {
 
 //  public static GeoLocation mockGeoLocation() {
 //    return new GeoLocation(30.2672D, 97.7431D);

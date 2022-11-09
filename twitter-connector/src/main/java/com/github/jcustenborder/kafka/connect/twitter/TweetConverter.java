@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class StatusConverter {
+public class TweetConverter {
 
   public final static Schema PLACE_SCHEMA;
   public final static Schema GEO_LOCATION_SCHEMA;

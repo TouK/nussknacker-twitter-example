@@ -20,7 +20,7 @@ public class DocumentationTest extends BaseDocumentationTest {
 
   @Override
   protected List<Schema> schemas() {
-    List<Schema> schemas = Arrays.stream(StatusConverter.class.getFields())
+    List<Schema> schemas = Arrays.stream(TweetConverter.class.getFields())
         .filter(field -> Modifier.isFinal(field.getModifiers()))
         .filter(field -> Modifier.isStatic(field.getModifiers()))
         .filter(field -> Schema.class.equals(field.getType()))
