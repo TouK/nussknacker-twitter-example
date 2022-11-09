@@ -150,11 +150,10 @@ services:
 
   designer:
     container_name: designer
-    image: touk/nussknacker:1.6.0
+    image: touk/nussknacker:1.6.1
     ports:
       - "3081:8080"
     environment:
-      CONFIG_FILE: /opt/nussknacker/conf/application.conf,/opt/nussknacker/conf/nussknacker.conf
       JDK_JAVA_OPTIONS: -Xmx256M
       INFLUXDB_URL: http://influxdb:8086
       KAFKA_ADDRESS: kafka:9092
@@ -162,7 +161,6 @@ services:
       DEFAULT_SCENARIO_TYPE: streaming-lite-embedded
     volumes:
       - storage_designer:/opt/nussknacker/storage
-      - ./nussknacker/nussknacker.conf:/opt/nussknacker/conf/nussknacker.conf
 
   influxdb:
     container_name: influxdb
