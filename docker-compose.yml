@@ -92,7 +92,7 @@ services:
     ports:
       - 8083:8083
     volumes:
-      - ./twitter-connector/target/kafka-connect-target/usr/share/kafka-connect/kafka-connect-twitter:/data/connect-jars/kafka-connect-twitter
+      - ./kafka-connect-twitter/target/kafka-connect-target/usr/share/kafka-connect/kafka-connect-twitter:/data/connect-jars/kafka-connect-twitter
     environment:
       CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
 
