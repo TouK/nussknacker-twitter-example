@@ -1,12 +1,12 @@
 /**
  * Copyright © 2016 Jeremy Custenborder (jcustenborder@gmail.com)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,6 +32,7 @@ import com.twitter.clientlib.model.Get2TweetsSampleStreamResponse;
 import com.twitter.clientlib.model.Rule;
 import com.twitter.clientlib.model.RuleNoId;
 import com.twitter.clientlib.model.Tweet;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
@@ -47,13 +48,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TwitterSourceTask extends SourceTask {
-  static final Logger log = LoggerFactory.getLogger(TwitterSourceTask.class);
+
+  private static final Logger log = LoggerFactory.getLogger(TwitterSourceTask.class);
   private static final int RETRIES = 10;
-  SourceRecordDeque messageQueue;
+  private SourceRecordDeque messageQueue;
 
-  volatile boolean running;
+  private volatile boolean running;
 
-  TwitterSourceConnectorConfig config;
+  private TwitterSourceConnectorConfig config;
 
   @Override
   public String version() {
@@ -147,8 +149,8 @@ public class TwitterSourceTask extends SourceTask {
     List<Rule> currentRules = apiInstance.tweets().getRules().execute(RETRIES).getData();
     if (currentRules != null && !currentRules.isEmpty()) {
       List<String> currentNotMatchingRulesIds = currentRules.stream()
-              .filter(rule -> !rule.getValue().equals(this.config.filterRule))
-              .map(Rule::getId).collect(Collectors.toList());
+          .filter(rule -> !rule.getValue().equals(this.config.filterRule))
+          .map(Rule::getId).collect(Collectors.toList());
       if (!currentNotMatchingRulesIds.isEmpty()) {
         DeleteRulesRequest delete = new DeleteRulesRequest().delete(new DeleteRulesRequestDelete().ids(currentNotMatchingRulesIds));
         AddOrDeleteRulesResponse deleteRulesResult = apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(delete)).execute(RETRIES);
@@ -194,29 +196,21 @@ public class TwitterSourceTask extends SourceTask {
 
   @Override
   public void stop() {
-    if (log.isInfoEnabled()) {
-      log.info("Shutting down twitter stream.");
-    }
+    log.info("Shutting down twitter stream.");
     running = false;
   }
 
-  public void onTweet(Tweet status) {
+  public void onTweet(Tweet tweet) {
     try {
-      Struct keyStruct = new Struct(TweetConverter.STATUS_SCHEMA_KEY);
-      Struct valueStruct = new Struct(TweetConverter.STATUS_SCHEMA);
-
-      TweetConverter.convertKey(status, keyStruct);
-      TweetConverter.convert(status, valueStruct);
+      Struct value = TweetConverter.convert(tweet);
 
       Map<String, ?> sourcePartition = ImmutableMap.of();
       Map<String, ?> sourceOffset = ImmutableMap.of();
 
-      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, this.config.topic, TweetConverter.STATUS_SCHEMA_KEY, keyStruct, TweetConverter.STATUS_SCHEMA, valueStruct);
+      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, this.config.topic, Schema.STRING_SCHEMA, tweet.getId(), TweetConverter.TWEET_SCHEMA, value);
       this.messageQueue.add(record);
     } catch (Exception ex) {
-      if (log.isErrorEnabled()) {
-        log.error("Exception thrown", ex);
-      }
+      log.error("Exception thrown", ex);
     }
   }
 

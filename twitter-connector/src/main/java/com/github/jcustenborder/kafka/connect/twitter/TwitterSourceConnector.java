@@ -22,8 +22,6 @@ import com.google.common.base.Preconditions;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -33,9 +31,8 @@ import java.util.Map;
 @Title("Twitter")
 @Description("This Twitter Source connector is used to pull data from Twitter in realtime.")
 public class TwitterSourceConnector extends SourceConnector {
-  private static Logger log = LoggerFactory.getLogger(TwitterSourceConnector.class);
+
   Map<String, String> settings;
-  private TwitterSourceConnectorConfig config;
 
   @Override
   public String version() {
@@ -44,7 +41,6 @@ public class TwitterSourceConnector extends SourceConnector {
 
   @Override
   public void start(Map<String, String> map) {
-    this.config = new TwitterSourceConnectorConfig(map);
     this.settings = map;
   }
 
@@ -71,4 +67,5 @@ public class TwitterSourceConnector extends SourceConnector {
   public ConfigDef config() {
     return TwitterSourceConnectorConfig.conf();
   }
+
 }

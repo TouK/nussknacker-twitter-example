@@ -189,7 +189,7 @@ services:
       - influxdb
 
   nginx:
-    container_name: nussknacker_nginx
+    container_name: nginx
     image: nginx:1.17.6
     ports:
       - "8081:80"

@@ -30,6 +30,14 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>arkadius</id>
+            <name>Arek Burdach</name>
+            <url>https://github.com/arkadius</url>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
     <scm>
         <connection>scm:git:https://github.com/jcustenborder/kafka-connect-twitter.git</connection>
@@ -66,6 +74,11 @@
                     <supportUrl>${pom.issueManagement.url}</supportUrl>
                     <supportSummary>Support provided through community involvement.</supportSummary>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.1.2</version>
             </plugin>
         </plugins>
     </build>

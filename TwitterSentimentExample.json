@@ -80,7 +80,7 @@
         {
           "expression" : {
             "language" : "spel",
-            "expression" : "!#postiveWords.?[#input.Text.toLowerCase.contains(#this)].isEmpty"
+            "expression" : "!#postiveWords.?[#input.text.toLowerCase.contains(#this)].isEmpty"
           },
           "nodes" : [
             {
@@ -106,7 +106,7 @@
         {
           "expression" : {
             "language" : "spel",
-            "expression" : "!#negativeWords.?[#input.Text.toLowerCase.contains(#this)].isEmpty"
+            "expression" : "!#negativeWords.?[#input.text.toLowerCase.contains(#this)].isEmpty"
           },
           "nodes" : [
             {
