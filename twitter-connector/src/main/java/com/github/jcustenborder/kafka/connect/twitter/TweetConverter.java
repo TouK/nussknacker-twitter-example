@@ -43,6 +43,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Timestamp;
 
 import javax.annotation.Nonnull;
+import java.math.RoundingMode;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
@@ -231,6 +232,8 @@ public class TweetConverter {
                 .orElse(null));
   }
 
+  private static final int POINTS_COORDINATES_SCALE = 8;
+
   /*{
       "type" : "object",
       "required" : [ "type", "coordinates" ],
@@ -252,13 +255,15 @@ public class TweetConverter {
   public static final Schema POINT_SCHEMA = SchemaBuilder.struct()
       .optional()
       .field(Point.SERIALIZED_NAME_TYPE, Schema.STRING_SCHEMA)
-      .field(Point.SERIALIZED_NAME_COORDINATES, SchemaBuilder.array(Decimal.schema(8)))
+      .field(Point.SERIALIZED_NAME_COORDINATES, SchemaBuilder.array(Decimal.schema(POINTS_COORDINATES_SCALE)))
       .build();
 
   public static Struct convert(@Nonnull Point input) {
     return new Struct(POINT_SCHEMA)
         .put(Point.SERIALIZED_NAME_TYPE, input.getType().getValue())
-        .put(Point.SERIALIZED_NAME_COORDINATES, input.getCoordinates());
+        .put(Point.SERIALIZED_NAME_COORDINATES, input.getCoordinates().stream()
+            .map(d -> d.setScale(POINTS_COORDINATES_SCALE, RoundingMode.UNNECESSARY))
+            .collect(Collectors.toList()));
   }
 
   /*{

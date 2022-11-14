@@ -19,13 +19,15 @@ twitter.bearerToken=
 kafka.tweets.topic=
 # And optionally these values
 filter.rule=
+tweet.fields=
 ```
 
-| Name                | Description                                                                                                        | Type     | Default | Valid Values | Importance |
-|---------------------|--------------------------------------------------------------------------------------------------------------------|----------|---------|--------------|------------|
-| filter.rule         | Filtering rules (https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule). | string   |         |              | high       |
-| kafka.tweets.topic  | Kafka topic to write the tweets to.                                                                                | string   |         |              | high       |
-| twitter.bearerToken | OAuth2 Bearer token with at least Elevated Twitter API access level                                                | password |         |              | high       |
+| Name                | Description                                                                                                                                                                                                                                                                                                            | Type     |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| twitter.bearerToken | OAuth2 Bearer token with at least Elevated Twitter API access level                                                                                                                                                                                                                                                    | password |
+| kafka.tweets.topic  | Kafka topic to write the tweets to.                                                                                                                                                                                                                                                                                    | string   |
+| filter.rule         | Filtering rules (https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule).                                                                                                                                                                                                     | string   |
+| tweet.fields        | Fields that will be returned for tweet. To fetch all fields, use: attachments,author_id,context_annotations,conversation_id,created_at,edit_controls,edit_history_tweet_ids,<br/>entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,<br/>source,text,withheld | string   |
 
 # Schemas
 

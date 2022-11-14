@@ -2,5 +2,6 @@
   "connector.class": "com.github.jcustenborder.kafka.connect.twitter.TwitterSourceConnector",
   "tasks.max": "1",
   "kafka.tweets.topic": "tweets",
+  "tweet.fields": "attachments,author_id,context_annotations,conversation_id,created_at,edit_controls,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld",
   "twitter.bearerToken": "$TWITTER_BEARER_TOKEN"
 }

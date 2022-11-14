@@ -18,15 +18,22 @@ package com.github.jcustenborder.kafka.connect.twitter;
 import com.twitter.clientlib.JSON;
 import com.twitter.clientlib.model.FullTextEntities;
 import com.twitter.clientlib.model.HashtagEntity;
+import com.twitter.clientlib.model.Point;
 import com.twitter.clientlib.model.Tweet;
 import com.twitter.clientlib.model.TweetEditControls;
+import com.twitter.clientlib.model.TweetGeo;
 import com.twitter.clientlib.model.UrlEntity;
+import io.confluent.connect.avro.AvroConverter;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -74,6 +81,23 @@ public class TweetConverterTest {
         .<Struct>getArray(FullTextEntities.SERIALIZED_NAME_HASHTAGS)
         .get(0)
         .getString(HashtagEntity.SERIALIZED_NAME_TAG));
+  }
+
+  @Test
+  public void shouldConvertDecimalToDesiredScale() {
+    Tweet tweet = new Tweet();
+    tweet.setId("foo");
+    tweet.setText("foo");
+    TweetGeo geo = new TweetGeo();
+    Point point = new Point();
+    point.setType(Point.TypeEnum.POINT);
+    point.setCoordinates(Arrays.asList(new BigDecimal("12.12345678"), new BigDecimal("12.1234567")));
+    geo.setCoordinates(point);
+    tweet.setGeo(geo);
+    Struct result = TweetConverter.convert(tweet);
+    AvroConverter converter = new AvroConverter(new MockSchemaRegistryClient());
+    converter.configure(Collections.singletonMap("schema.registry.url", "http://localhost:8080/not_used"), false);
+    converter.fromConnectData("foo", TweetConverter.TWEET_SCHEMA, result);
   }
 
 }

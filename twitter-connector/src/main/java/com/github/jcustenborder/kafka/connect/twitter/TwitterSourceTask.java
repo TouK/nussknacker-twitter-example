@@ -21,6 +21,7 @@ import com.github.jcustenborder.kafka.connect.utils.data.SourceRecordDequeBuilde
 import com.google.common.collect.ImmutableMap;
 import com.twitter.clientlib.ApiException;
 import com.twitter.clientlib.TwitterCredentialsBearer;
+import com.twitter.clientlib.api.TweetsApi;
 import com.twitter.clientlib.api.TwitterApi;
 import com.twitter.clientlib.model.AddOrDeleteRulesRequest;
 import com.twitter.clientlib.model.AddOrDeleteRulesResponse;
@@ -43,6 +44,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,18 +61,18 @@ public class TwitterSourceTask extends SourceTask {
 
   @Override
   public String version() {
-    return VersionUtil.version(this.getClass());
+    return VersionUtil.version(getClass());
   }
 
   @Override
   public void start(Map<String, String> map) {
-    this.config = new TwitterSourceConnectorConfig(map);
-    this.messageQueue = SourceRecordDequeBuilder.of()
-        .emptyWaitMs(this.config.queueEmptyMs)
-        .batchSize(this.config.queueBatchSize)
+    config = new TwitterSourceConnectorConfig(map);
+    messageQueue = SourceRecordDequeBuilder.of()
+        .emptyWaitMs(config.queueEmptyMs)
+        .batchSize(config.queueBatchSize)
         .build();
 
-    TwitterApi apiInstance = new TwitterApi(new TwitterCredentialsBearer(this.config.bearerToken.value()));
+    TwitterApi apiInstance = new TwitterApi(new TwitterCredentialsBearer(config.bearerToken.value()));
     InputStream twitterStream;
     try {
       twitterStream = initTweetsStreamProcessing(apiInstance);
@@ -133,23 +135,33 @@ public class TwitterSourceTask extends SourceTask {
 
   private InputStream initTweetsStreamProcessing(TwitterApi apiInstance) throws ApiException {
     InputStream twitterStream;
-    if (this.config.filterRule != null) {
+    if (config.filterRule != null) {
+      log.info("Setting up filter rule = {}", config.filterRule);
       setFilterRule(apiInstance);
       log.info("Starting tweets search stream.");
-      twitterStream = apiInstance.tweets().searchStream().execute(RETRIES);
+      TweetsApi.APIsearchStreamRequest builder = apiInstance.tweets().searchStream();
+      if (config.tweetFields != null) {
+        log.info("Setting up tweet fields = {}", config.tweetFields);
+        builder = builder.tweetFields(Arrays.stream(config.tweetFields.split(",")).collect(Collectors.toSet()));
+      }
+      twitterStream = builder.execute(RETRIES);
     } else {
       log.info("Starting tweets sample stream.");
-      twitterStream = apiInstance.tweets().sampleStream().execute(RETRIES);
+      TweetsApi.APIsampleStreamRequest builder = apiInstance.tweets().sampleStream();
+      if (config.tweetFields != null) {
+        log.info("Setting up tweet fields = {}", config.tweetFields);
+        builder = builder.tweetFields(Arrays.stream(config.tweetFields.split(",")).collect(Collectors.toSet()));
+      }
+      twitterStream = builder.execute(RETRIES);
     }
     return twitterStream;
   }
 
   private void setFilterRule(TwitterApi apiInstance) throws ApiException {
-    log.info("Setting up filter rule = {}", this.config.filterRule);
     List<Rule> currentRules = apiInstance.tweets().getRules().execute(RETRIES).getData();
     if (currentRules != null && !currentRules.isEmpty()) {
       List<String> currentNotMatchingRulesIds = currentRules.stream()
-          .filter(rule -> !rule.getValue().equals(this.config.filterRule))
+          .filter(rule -> !rule.getValue().equals(config.filterRule))
           .map(Rule::getId).collect(Collectors.toList());
       if (!currentNotMatchingRulesIds.isEmpty()) {
         DeleteRulesRequest delete = new DeleteRulesRequest().delete(new DeleteRulesRequestDelete().ids(currentNotMatchingRulesIds));
@@ -157,8 +169,8 @@ public class TwitterSourceTask extends SourceTask {
         log.debug("Delete rules result: " + deleteRulesResult);
       }
     }
-    if (currentRules == null || currentRules.stream().noneMatch(rule -> rule.getValue().equals(this.config.filterRule))) {
-      RuleNoId rule = new RuleNoId().value(this.config.filterRule);
+    if (currentRules == null || currentRules.stream().noneMatch(rule -> rule.getValue().equals(config.filterRule))) {
+      RuleNoId rule = new RuleNoId().value(config.filterRule);
       AddRulesRequest add = new AddRulesRequest().addAddItem(rule);
       AddOrDeleteRulesResponse addRulesResult = apiInstance.tweets().addOrDeleteRules(new AddOrDeleteRulesRequest(add)).execute(RETRIES);
       log.debug("Add rules result: " + addRulesResult);
@@ -191,7 +203,7 @@ public class TwitterSourceTask extends SourceTask {
 
   @Override
   public List<SourceRecord> poll() throws InterruptedException {
-    return this.messageQueue.getBatch();
+    return messageQueue.getBatch();
   }
 
   @Override
@@ -207,8 +219,8 @@ public class TwitterSourceTask extends SourceTask {
       Map<String, ?> sourcePartition = ImmutableMap.of();
       Map<String, ?> sourceOffset = ImmutableMap.of();
 
-      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, this.config.topic, Schema.STRING_SCHEMA, tweet.getId(), TweetConverter.TWEET_SCHEMA, value);
-      this.messageQueue.add(record);
+      SourceRecord record = new SourceRecord(sourcePartition, sourceOffset, config.topic, Schema.STRING_SCHEMA, tweet.getId(), TweetConverter.TWEET_SCHEMA, value);
+      messageQueue.add(record);
     } catch (Exception ex) {
       log.error("Exception thrown", ex);
     }
