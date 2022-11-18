@@ -84,15 +84,13 @@ services:
       retries: 5
 
   connect:
-    image: confluentinc/cp-kafka-connect-base:7.2.1
+    image: ghcr.io/touk/kafka-connect-twitter:7.2.1
     container_name: connect
     depends_on:
       - zookeeper
       - kafka
     ports:
       - 8083:8083
-    volumes:
-      - ./kafka-connect-twitter/target/kafka-connect-target/usr/share/kafka-connect/kafka-connect-twitter:/data/connect-jars/kafka-connect-twitter
     environment:
       CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
 
@@ -131,18 +129,6 @@ services:
         -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20
         -XX:MaxGCPauseMillis=10000 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent
         -XX:MaxInlineLevel=15 -Djava.awt.headless=true
-    command:
-      - bash
-      - -c
-      - |
-        # We use locally built, unreleased connector instead
-        #echo "Installing Connector"
-        #confluent-hub install --no-prompt jcustenborder/kafka-connect-twitter:0.3.34
-        #
-        echo "Launching Kafka Connect worker"
-        /etc/confluent/docker/run &
-        #
-        sleep infinity
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:8083"]
       interval: 10s
