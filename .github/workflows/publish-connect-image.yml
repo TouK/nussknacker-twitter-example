@@ -2,6 +2,8 @@ name: Publish kafka-connect-twitter docker image
 
 on:
   push:
+    branches:
+      - main
 
 jobs:
   build-push:
