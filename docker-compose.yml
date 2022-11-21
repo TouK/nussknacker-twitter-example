@@ -145,6 +145,7 @@ services:
       KAFKA_ADDRESS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schemaregistry:8081
       DEFAULT_SCENARIO_TYPE: streaming-lite-embedded
+      USAGE_REPORTS_FINGERPRINT: twitter-example
     volumes:
       - storage_designer:/opt/nussknacker/storage
 
